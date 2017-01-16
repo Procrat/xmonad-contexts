@@ -1,6 +1,7 @@
 module XMonad.Actions.Contexts (
     createContext,
     switchContext,
+    listContextNames,
     defaultContextName,
     showContextStorage
 ) where
@@ -56,6 +57,11 @@ createContext name = do
     let newContext = Context newWS'
         newContextMap = Map.insert name newContext (contextMap contextStorage)
     XS.put $ contextStorage { contextMap = newContextMap }
+
+listContextNames :: X [ContextName]
+listContextNames = do
+  contextStorage <- XS.get :: X ContextStorage
+  return $ Map.keys (contextMap contextStorage)
 
 newWS :: X WindowSet
 newWS = withDisplay $ \dpy -> do
