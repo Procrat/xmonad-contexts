@@ -32,7 +32,7 @@ defaultContextName :: ContextName
 defaultContextName = "default"
 
 -------------------------------------------------------------------------------
-switchContext :: ContextName -> X ()
+switchContext :: ContextName -> X Bool
 switchContext name = do
   contextStorage <- XS.get :: X ContextStorage
   let findAndDelete = Map.updateLookupWithKey (\_ _ -> Nothing)
@@ -45,7 +45,8 @@ switchContext name = do
           newContextMap' = Map.insert (currentContextName contextStorage) currentContext newContextMap
       XS.put $ ContextStorage name newContextMap'
       windows (const $ contextWS newContext)
-    Nothing -> return ()
+      return True
+    Nothing -> return False
 
 createContext :: ContextName -> X ()
 createContext name = do
