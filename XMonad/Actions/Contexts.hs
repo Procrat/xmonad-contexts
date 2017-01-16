@@ -2,6 +2,7 @@ module XMonad.Actions.Contexts (
     createContext,
     switchContext,
     createAndSwitchContext,
+    deleteContext,
     listContextNames,
     defaultContextName,
     showContextStorage
@@ -40,6 +41,7 @@ switchContext name = do
   let findAndDelete = Map.updateLookupWithKey (\_ _ -> Nothing)
   let (maybeNewContext, newContextMap) = findAndDelete name (contextMap contextStorage)
   case maybeNewContext of
+    Nothing -> return False
     Just newContext -> do
       xstate <- get
       let currentContext = Context (windowset xstate)
@@ -48,7 +50,6 @@ switchContext name = do
       XS.put $ ContextStorage name newContextMap'
       windows (const $ contextWS newContext)
       return True
-    Nothing -> return False
 
 createAndSwitchContext :: ContextName -> X ()
 createAndSwitchContext name = do
@@ -84,4 +85,4 @@ newWS = withDisplay $ \dpy -> do
 showContextStorage :: X ()
 showContextStorage = do
   contextStorage <- XS.get :: X ContextStorage
-  liftIO $ print contextStorage
+  io $ print contextStorage
