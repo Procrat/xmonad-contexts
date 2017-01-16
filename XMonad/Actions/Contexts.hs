@@ -1,6 +1,7 @@
 module XMonad.Actions.Contexts (
     createContext,
     switchContext,
+    createAndSwitchContext,
     listContextNames,
     defaultContextName,
     showContextStorage
@@ -48,6 +49,12 @@ switchContext name = do
       windows (const $ contextWS newContext)
       return True
     Nothing -> return False
+
+createAndSwitchContext :: ContextName -> X ()
+createAndSwitchContext name = do
+  createContext name
+  switchContext name
+  return ()
 
 createContext :: ContextName -> X ()
 createContext name = do
