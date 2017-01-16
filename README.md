@@ -6,26 +6,44 @@ use multiple workspaces to work on a single project. Then you can create a
 context per project and temporarily make sure you don't need to see irrelevant
 workspaces.
 
+
 ## Usage
 
-You can use this extension by editing your `~/.xmonad/xmonad.hs`.
+### Hold my hand
 
+I find this extension particularly enjoyable in combination with a menu, like
+[`dmenu`](http://tools.suckless.org/dmenu/). So I am going to assume you have it
+(or something similar) installed.
+
+Add the following to the imports of your `~/.xmonad/xmonad.hs`.
 ```haskell
+import qualified XMonad.Util.Dmenu       as D
 import qualified XMonad.Actions.Contexts as C
 ```
 
-Then add key bindings like the following (this example uses
+Then add a key binding that switches contexts and creates it if it did not
+exist, and a key binding that deletes a context.
+This example uses
 [XMonad.Util.EZConfig](http://xmonad.org/xmonad-docs/xmonad-contrib/XMonad-Util-EZConfig.html)-style
-key bindings, but this is not necessary):
-
+key bindings, but this is not necessary.
 ```haskell
-    , ("M-n", C.createContext "context2")
-    , ("M-s", C.switchContext C.defaultContextName)
-    , ("M-S-s", C.switchContext "context2")
+    ...
+    , ("M-s", C.listContextNames >>= D.dmenu >>= C.createAndSwitchContext)
+    , ("M-S-s", C.listContextNames >>= D.dmenu >>= C.deleteContext >> return ())
+    ...
 ```
 
-**Tip**: Use something like [`dmenu`](http://tools.suckless.org/dmenu/) to
-dynamically choose a context name.
+### Just give me the API
+
+I think the function names are pretty self-explanatory. If they are not, please
+tell me so.
+```haskell
+switchContext          :: String -> X Bool
+createAndSwitchContext :: String -> X ()
+createContext          :: String -> X ()
+deleteContext          :: String -> X Bool
+listContextNames       :: X [String]
+```
 
 
 ## Similar extensions
@@ -44,9 +62,38 @@ sets completely intact, but just switches to completely other ones. One of the
 advantages is that this means that **all your key bindings and extensions that
 manage workspaces can remain intact!**
 
+
 ## Disclaimer
 
 Although the creation and switching of context is fully functional, this
 extension does not make the contexts persistent yet, meaning that when
 restarting XMonad, the non-visible contexts are lost. I mean to make it
 persistent sometime soon.
+
+
+## Troubleshooting
+
+### Nothing happens when I try to switch. I am not using dmenu, but X.
+
+I encountered a similar issue when using dmwit's
+[`yeganesh`](http://dmwit.com/yeganesh/). The problem is that XMonad cleans up
+child processes. In this particular case, it cleaned up `yeganesh`'s call to
+`dmenu`. To fix this, temporarily disable XMonad's signal handlers in the call
+to the menu.
+```haskell
+import XMonad
+
+safeMenu :: [String] -> X String
+safeMenu options = do
+    uninstallSignalHandlers
+    choice <- D.menu "yeganesh" options
+    installSignalHandlers
+    return choice
+```
+Then replace the `dmenu` call by a call to this function.
+```haskell
+    ...
+    , ("M-s", C.listContextNames >>= safeMenu >>= C.createAndSwitchContext)
+    , ("M-S-s", C.listContextNames >>= safeMenu >>= C.deleteContext >> return ())
+    ...
+```
