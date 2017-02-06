@@ -31,7 +31,7 @@ data ContextStorage = ContextStorage
     } deriving Show
 
 instance ExtensionClass ContextStorage where
-  initialValue = ContextStorage defaultContextName Map.empty
+    initialValue = ContextStorage defaultContextName Map.empty
 
 defaultContextName :: ContextName
 defaultContextName = "default"
@@ -54,13 +54,15 @@ switchContext name = do
 createAndSwitchContext :: ContextName -> X ()
 createAndSwitchContext name = do
     createContext name
-    switchContext name
+    _ <- switchContext name
     return ()
 
 createContext :: ContextName -> X ()
 createContext name = do
     ctxStorage <- XS.get :: X ContextStorage
-    when (name `Map.notMember` ctxMap ctxStorage) $ do
+    when (not (null name)
+          && name /= currentCtxName ctxStorage
+          && name `Map.notMember` ctxMap ctxStorage) $ do
         newWS' <- newWS
         let newCtx = Context newWS'
             newCtxMap = Map.insert name newCtx (ctxMap ctxStorage)
@@ -75,7 +77,7 @@ deleteContext name = do
       Just ctx -> do
           -- Kill all windows in that context
           let windows' = W.allWindows $ ctxWS ctx
-          withDisplay $ \dpy -> for windows' (io . killClient dpy)
+          _ <- withDisplay $ \dpy -> for windows' (io . killClient dpy)
           XS.put $ ctxStorage { ctxMap = newCtxMap }
           return True
 
