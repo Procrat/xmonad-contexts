@@ -3,6 +3,7 @@ module XMonad.Actions.Contexts (
     switchContext,
     createAndSwitchContext,
     deleteContext,
+    showCurrentContextName,
     listContextNames,
     defaultContextName,
     showContextStorage
@@ -80,6 +81,11 @@ deleteContext name = do
           _ <- withDisplay $ \dpy -> for windows' (io . killClient dpy)
           XS.put $ ctxStorage { ctxMap = newCtxMap }
           return True
+
+showCurrentContextName :: X String
+showCurrentContextName = do
+    ctxStorage <- XS.get :: X ContextStorage
+    return $ currentCtxName ctxStorage
 
 listContextNames :: X [ContextName]
 listContextNames = do
