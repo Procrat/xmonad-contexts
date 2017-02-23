@@ -38,11 +38,15 @@ key bindings, but this is not necessary.
 I think the function names are pretty self-explanatory. If they are not, please
 tell me so.
 ```haskell
-switchContext          :: String -> X Bool
-createAndSwitchContext :: String -> X ()
-createContext          :: String -> X ()
-deleteContext          :: String -> X Bool
-listContextNames       :: X [String]
+type ContextName = String
+
+createContext          :: ContextName -> X ()
+switchContext          :: ContextName -> X Bool
+createAndSwitchContext :: ContextName -> X ()
+deleteContext          :: ContextName -> X Bool
+showCurrentContextName :: X String
+listContextNames       :: X [ContextName]
+defaultContextName     :: ContextName
 ```
 
 
