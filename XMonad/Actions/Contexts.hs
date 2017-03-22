@@ -1,3 +1,7 @@
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE StandaloneDeriving   #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 module XMonad.Actions.Contexts (
     createContext,
     switchContext,
@@ -26,19 +30,24 @@ newtype Context = Context
     { ctxWS :: WindowSet
     } deriving Show
 
+deriving instance Read (Layout Window) => Read Context
+
 data ContextStorage = ContextStorage
     { currentCtxName :: !ContextName
     , ctxMap         :: !ContextMap
     } deriving Show
 
-instance ExtensionClass ContextStorage where
+deriving instance Read (Layout Window) => Read ContextStorage
+
+instance Read (Layout Window) => ExtensionClass ContextStorage where
     initialValue = ContextStorage defaultContextName Map.empty
+    extensionType = PersistentExtension
 
 defaultContextName :: ContextName
 defaultContextName = "default"
 
 -------------------------------------------------------------------------------
-switchContext :: ContextName -> X Bool
+switchContext :: Read (Layout Window) => ContextName -> X Bool
 switchContext name = do
     ctxStorage <- XS.get :: X ContextStorage
     let (maybeNewCtx, newCtxMap) = findAndDelete name (ctxMap ctxStorage)
@@ -52,13 +61,13 @@ switchContext name = do
             windows (const $ ctxWS newCtx)
             return True
 
-createAndSwitchContext :: ContextName -> X ()
+createAndSwitchContext :: Read (Layout Window) => ContextName -> X ()
 createAndSwitchContext name = do
     createContext name
     _ <- switchContext name
     return ()
 
-createContext :: ContextName -> X ()
+createContext :: Read (Layout Window) => ContextName -> X ()
 createContext name = do
     ctxStorage <- XS.get :: X ContextStorage
     when (not (null name)
@@ -69,7 +78,7 @@ createContext name = do
             newCtxMap = Map.insert name newCtx (ctxMap ctxStorage)
         XS.put $ ctxStorage { ctxMap = newCtxMap }
 
-deleteContext :: ContextName -> X Bool
+deleteContext :: Read (Layout Window) => ContextName -> X Bool
 deleteContext name = do
     ctxStorage <- XS.get :: X ContextStorage
     let (maybeCtx, newCtxMap) = findAndDelete name (ctxMap ctxStorage)
@@ -82,12 +91,12 @@ deleteContext name = do
           XS.put $ ctxStorage { ctxMap = newCtxMap }
           return True
 
-showCurrentContextName :: X String
+showCurrentContextName :: Read (Layout Window) => X String
 showCurrentContextName = do
     ctxStorage <- XS.get :: X ContextStorage
     return $ currentCtxName ctxStorage
 
-listContextNames :: X [ContextName]
+listContextNames :: Read (Layout Window) => X [ContextName]
 listContextNames = do
     ctxStorage <- XS.get :: X ContextStorage
     return $ Map.keys (ctxMap ctxStorage)
@@ -106,7 +115,7 @@ newWS = withDisplay $ \dpy -> do
 findAndDelete :: ContextName -> ContextMap -> (Maybe Context, ContextMap)
 findAndDelete = Map.updateLookupWithKey (\_ _ -> Nothing)
 
-showContextStorage :: X ()
+showContextStorage :: Read (Layout Window) => X ()
 showContextStorage = do
     ctxStorage <- XS.get :: X ContextStorage
     io $ print ctxStorage

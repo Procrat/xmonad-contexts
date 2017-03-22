@@ -33,19 +33,34 @@ key bindings, but this is not necessary.
     ...
 ```
 
+As a final step, which is required to make your layouts in non-visible contexts
+persistent across restarts of XMonad, you have to make the following `instance`
+where `myLayout` is the layout you defined in the `layoutHook` field of your
+XMonad configuration.
+```haskell
+{-# LANGUAGE FlexibleInstances #-}
+import XMonad (readsLayout)
+
+instance Read (Layout Window) where
+    readsPrec _ = readsLayout (Layout myLayout)
+```
+
+
 ### Just give me the API
 
 I think the function names are pretty self-explanatory. If they are not, please
-tell me so.
+tell me so. Usage of them requires an orphan instance of `Read (Layout Window)`
+in your `xmonad.hs` to be able to make layouts persistents across restarts of
+XMonad. If there is a way to work around this hack, I would love to know!
 ```haskell
 type ContextName = String
 
-createContext          :: ContextName -> X ()
-switchContext          :: ContextName -> X Bool
-createAndSwitchContext :: ContextName -> X ()
-deleteContext          :: ContextName -> X Bool
-showCurrentContextName :: X String
-listContextNames       :: X [ContextName]
+createContext          :: Read (Layout Window) => ContextName -> X ()
+switchContext          :: Read (Layout Window) => ContextName -> X Bool
+createAndSwitchContext :: Read (Layout Window) => ContextName -> X ()
+deleteContext          :: Read (Layout Window) => ContextName -> X Bool
+showCurrentContextName :: Read (Layout Window) => X String
+listContextNames       :: Read (Layout Window) => X [ContextName]
 defaultContextName     :: ContextName
 ```
 
@@ -67,17 +82,9 @@ advantages is that this means that **all your key bindings and extensions that
 manage workspaces can remain intact!**
 
 
-## Disclaimer
-
-Although the creation and switching of context is fully functional, this
-extension does not make the contexts persistent yet, meaning that when
-restarting XMonad, the non-visible contexts are lost. I mean to make it
-persistent sometime soon.
-
-
 ## Troubleshooting
 
-### Nothing happens when I try to switch. I am not using dmenu, but X.
+### Nothing happens when I try to switch. I am not using dmenu, but <X>.
 
 I encountered a similar issue when using dmwit's
 [`yeganesh`](http://dmwit.com/yeganesh/). The problem is that XMonad cleans up
