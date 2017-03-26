@@ -6,6 +6,8 @@ use multiple workspaces to work on a single project. Then you can create a
 context per project and temporarily make sure you don't need to see irrelevant
 workspaces.
 
+See [this screencast](https://youtu.be/PNvO06Xofms) for a demo.
+
 
 ## Usage
 
