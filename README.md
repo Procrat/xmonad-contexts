@@ -11,6 +11,12 @@ workspaces.
 
 ### Hold my hand
 
+Clone this repo into your `~/.xmonad/lib` directory or make it available to you
+in another way.
+```sh
+git clone git@github.com:Procrat/xmonad-contexts ~/.xmonad/lib/
+```
+
 I find this extension particularly enjoyable in combination with a menu, like
 [`dmenu`](http://tools.suckless.org/dmenu/). So I am going to assume you have it
 (or something similar) installed.
