@@ -87,7 +87,7 @@ deleteContext name = do
       Just ctx -> do
           -- Kill all windows in that context
           let windows' = W.allWindows $ ctxWS ctx
-          _ <- withDisplay $ \dpy -> for windows' (io . killClient dpy)
+          _ <- for windows' killWindow
           XS.put $ ctxStorage { ctxMap = newCtxMap }
           return True
 
