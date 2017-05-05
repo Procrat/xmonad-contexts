@@ -92,7 +92,7 @@ manage workspaces can remain intact!**
 
 ## Troubleshooting
 
-### Nothing happens when I try to switch. I am not using dmenu, but <X>.
+### Nothing happens when I try to switch. I am not using dmenu, but \<X\>.
 
 I encountered a similar issue when using dmwit's
 [`yeganesh`](http://dmwit.com/yeganesh/). The problem is that XMonad cleans up
