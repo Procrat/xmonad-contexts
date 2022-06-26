@@ -15,8 +15,8 @@ module XMonad.Actions.Contexts (
 
 
 import           Control.Monad               (when)
+import           Data.Foldable               (for_)
 import qualified Data.Map.Strict             as Map
-import           Data.Traversable            (for)
 
 import           XMonad
 import qualified XMonad.StackSet             as W
@@ -87,7 +87,7 @@ deleteContext name = do
       Just ctx -> do
           -- Kill all windows in that context
           let windows' = W.allWindows $ ctxWS ctx
-          _ <- for windows' killWindow
+          for_ windows' killWindow
           XS.put $ ctxStorage { ctxMap = newCtxMap }
           return True
 
