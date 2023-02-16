@@ -9,10 +9,10 @@ module XMonad.Actions.Contexts (
     deleteContext,
     showCurrentContextName,
     listContextNames,
+    moveWindowToContext,
     defaultContextName,
     showContextStorage
 ) where
-
 
 import           Control.Monad               (when)
 import           Data.Foldable               (for_)
@@ -50,15 +50,15 @@ defaultContextName = "default"
 switchContext :: Read (Layout Window) => ContextName -> X Bool
 switchContext name = do
     ctxStorage <- XS.get :: X ContextStorage
-    let (maybeNewCtx, newCtxMap) = findAndDelete name (ctxMap ctxStorage)
+    let (maybeNewCtx, newCtxMap) = findAndDelete name (ctxMap ctxStorage) -- get old
     case maybeNewCtx of
         Nothing     -> return False
         Just newCtx -> do
             xstate <- get
             let currentCtx = Context (windowset xstate)
-                newCtxMap' = Map.insert (currentCtxName ctxStorage) currentCtx newCtxMap
-            XS.put $ ContextStorage name newCtxMap'
-            windows (const $ ctxWS newCtx)
+                newCtxMap' = Map.insert (currentCtxName ctxStorage) currentCtx newCtxMap -- store current in map
+            XS.put $ ContextStorage name newCtxMap' -- store map
+            windows (const $ ctxWS newCtx) -- load new context
             return True
 
 createAndSwitchContext :: Read (Layout Window) => ContextName -> X ()
@@ -66,6 +66,30 @@ createAndSwitchContext name = do
     createContext name
     _ <- switchContext name
     return ()
+
+
+-- switch to new context while taking the current active window with you
+moveWindowToContext :: Read (Layout Window) => ContextName -> X Bool
+moveWindowToContext name = do
+    ctxStorage <- XS.get :: X ContextStorage
+    let (maybeNewCtx, newCtxMap) = findAndDelete name (ctxMap ctxStorage)
+    case maybeNewCtx of
+        Nothing     -> return False -- context not found
+        Just newCtx -> do
+            maybeWindow <- W.peek <$> gets windowset -- get current active window
+            case maybeWindow of
+                Nothing -> return False -- no active window found
+                Just window -> do
+                    xstate <- get
+
+                    let currentCtxModified = Context $ W.delete window (windowset xstate) -- remove focused window from window set of current contxt
+                        modifiedCtxMap = Map.insert (currentCtxName ctxStorage) currentCtxModified newCtxMap -- store current but modified context
+                    XS.put $ ContextStorage name modifiedCtxMap -- store
+
+                    let newCtxModified = Context $ W.insertUp window (ctxWS newCtx) -- insert focused window in new context
+                    windows (const $ ctxWS newCtxModified) -- load new context?
+
+                    return True
 
 createContext :: Read (Layout Window) => ContextName -> X ()
 createContext name = do
@@ -111,6 +135,7 @@ newWS = withDisplay $ \dpy -> do
         workspaces' = padToLen (length xinesc) (workspaces conf)
         sds = map SD xinesc
     return $ W.new layout workspaces' sds
+
 
 findAndDelete :: ContextName -> ContextMap -> (Maybe Context, ContextMap)
 findAndDelete = Map.updateLookupWithKey (\_ _ -> Nothing)
