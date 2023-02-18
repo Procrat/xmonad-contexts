@@ -34,8 +34,7 @@ type ContextMap = Map.Map ContextName Context
 type WorkspaceNames = [(WorkspaceId, String)]
 
 data Context = Context
-    { ctxWS          :: WindowSet
-    -- , workspaceNames :: WorkspaceNames
+    { windowSet          :: WindowSet
     , workspaceNames :: WorkspaceNames
     } deriving Show
 
@@ -43,7 +42,7 @@ deriving instance Read (Layout Window) => Read Context
 
 data ContextStorage = ContextStorage
     { currentCtxName :: !ContextName
-    , ctxMap         :: !ContextMap
+    , contextMap         :: !ContextMap
     } deriving Show
 
 deriving instance Read (Layout Window) => Read ContextStorage
@@ -53,20 +52,20 @@ instance Read (Layout Window) => ExtensionClass ContextStorage where
     extensionType = PersistentExtension
 
 defaultContextName :: ContextName
-defaultContextName = "main"
+defaultContextName = "Main"
 
 -------------------------------------------------------------------------------
 switchContext :: Read (Layout Window) => ContextName -> X Bool
 switchContext newContextName = do
     ctxStorage <- XS.get :: X ContextStorage
-    let (maybeNewCtx, contextMap) = findAndDelete newContextName (ctxMap ctxStorage) -- get new
+    let (maybeNewCtx, ctxMap) = findAndDelete newContextName (contextMap ctxStorage) -- get new
     case maybeNewCtx of
         Nothing     -> return False
         Just newCtx -> do
             xstate <- get
             wsMap <- currentWorkspaceMap -- list of current workspaces
 
-            let ctxMap' = Map.insert oldContextName oldContext contextMap -- store current context in map
+            let ctxMap' = Map.insert oldContextName oldContext ctxMap -- store current context in map
                     where oldContext = Context (windowset xstate) wsMap -- current Context, including current names of workspaces
                           oldContextName = currentCtxName ctxStorage
 
@@ -83,12 +82,11 @@ createAndSwitchContext name = do
     return ()
 
 
-
 -- set the window set and apply the workspaceNames
 setWindowsAndWorkspaces :: Context -> X ()
 setWindowsAndWorkspaces ctx = do
-    let Context ctxWS workspaceNames = ctx
-    windows $ const ctxWS -- hide old windows and show windows from new context
+    let Context windowSet workspaceNames = ctx
+    windows $ const windowSet -- hide old windows and show windows from new context
     mapM_ (uncurry setWorkspaceName) workspaceNames
 
 
@@ -116,7 +114,7 @@ defaultWorkspaces = do
 moveWindowToContext :: Read (Layout Window) => ContextName -> X Bool
 moveWindowToContext name = do
     ctxStorage <- XS.get :: X ContextStorage
-    let (maybeNewCtx, contextMap) = findAndDelete name (ctxMap ctxStorage)
+    let (maybeNewCtx, ctxMap) = findAndDelete name (contextMap ctxStorage)
     case maybeNewCtx of
         Nothing     -> return False -- context not found
         Just newCtx -> do
@@ -127,7 +125,7 @@ moveWindowToContext name = do
                     xstate <- get
                     wsMap <- currentWorkspaceMap -- list of current workspaces
 
-                    let ctxMap' = Map.insert oldContextName oldContext contextMap -- store current context in map
+                    let ctxMap' = Map.insert oldContextName oldContext ctxMap -- store current context in map
                             where newWindowSet = W.delete  window (windowset xstate)
                                   oldContext = Context newWindowSet wsMap -- current Context, including current names of workspaces
                                   oldContextName = currentCtxName ctxStorage
@@ -135,7 +133,7 @@ moveWindowToContext name = do
                     XS.put $ ContextStorage name ctxMap' -- store changes
 
                     let newCtx' = Context newWindowSet newWorkspaceNames -- insert focused window in new context
-                            where newWindowSet = W.insertUp window (ctxWS newCtx)
+                            where newWindowSet = W.insertUp window (windowSet newCtx)
                                   newWorkspaceNames = workspaceNames newCtx
 
                     setWindowsAndWorkspaces newCtx' -- load new context
@@ -148,24 +146,24 @@ createContext name = do
     ctxStorage <- XS.get :: X ContextStorage
     when (not (null name)
           && name /= currentCtxName ctxStorage
-          && name `Map.notMember` ctxMap ctxStorage) $ do
+          && name `Map.notMember` contextMap ctxStorage) $ do
         newWS' <- newWS
         defWs <- defaultWorkspaces
         let newCtx = Context newWS' defWs -- create new context with new workspace names
-            newCtxMap = Map.insert name newCtx (ctxMap ctxStorage)
-        XS.put $ ctxStorage { ctxMap = newCtxMap }
+            newCtxMap = Map.insert name newCtx (contextMap ctxStorage)
+        XS.put $ ctxStorage { contextMap = newCtxMap }
 
 deleteContext :: Read (Layout Window) => ContextName -> X Bool
 deleteContext name = do
     ctxStorage <- XS.get :: X ContextStorage
-    let (maybeCtx, newCtxMap) = findAndDelete name (ctxMap ctxStorage)
+    let (maybeCtx, newCtxMap) = findAndDelete name (contextMap ctxStorage)
     case maybeCtx of
       Nothing  -> return False
       Just ctx -> do
           -- Kill all windows in that context
-          let windows' = W.allWindows $ ctxWS ctx
+          let windows' = W.allWindows $ windowSet ctx
           for_ windows' killWindow
-          XS.put $ ctxStorage { ctxMap = newCtxMap }
+          XS.put $ ctxStorage { contextMap = newCtxMap }
           return True
 
 showCurrentContextName :: Read (Layout Window) => X String
@@ -176,7 +174,7 @@ showCurrentContextName = do
 listContextNames :: Read (Layout Window) => X [ContextName]
 listContextNames = do
     ctxStorage <- XS.get :: X ContextStorage
-    return $ Map.keys (ctxMap ctxStorage)
+    return $ Map.keys (contextMap ctxStorage)
 
 newWS :: X WindowSet
 newWS = withDisplay $ \dpy -> do
