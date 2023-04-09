@@ -118,7 +118,10 @@ mergeContexts ids ctxOld ctxNew = do
         W.current = newFocused
     }
 
-    Context mergedStack (workspaceNames ctxNew)
+    -- copy workspace names
+    let mergedWsNames = zipWith selectWsName (workspaceNames ctxOld) (workspaceNames ctxNew)
+
+    Context mergedStack mergedWsNames
 
         where
             selectScreen screen = do
@@ -129,8 +132,11 @@ mergeContexts ids ctxOld ctxNew = do
 
             workspacesOld = W.workspaces (windowSet ctxOld)
 
-            {- oldWs :: W.Workspace i l a -> W.Workspace i l a -}
             oldWs ws = fromMaybe ws (find (\x -> W.tag ws == W.tag x) workspacesOld) -- if tag is not found in workspacesOld, return new ws
+
+            
+            selectWsName (tag, nameOld) (_, nameNew) = if tag `elem` ids then (tag, nameOld) else (tag, nameNew)
+
 
 -- set the window set and apply the workspaceNames
 setWindowsAndWorkspaces :: [WorkspaceId] -> Context -> Context -> X ()
