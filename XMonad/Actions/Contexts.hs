@@ -10,6 +10,7 @@ module XMonad.Actions.Contexts (
     createAndSwitchContext,
     createAndSwitchContextFixedWs,
     deleteContext,
+    deleteContextFixedWs,
     showCurrentContextName,
     listContextNames,
     moveWindowToContext,
@@ -134,7 +135,7 @@ mergeContexts ids ctxOld ctxNew = do
 
             oldWs ws = fromMaybe ws (find (\x -> W.tag ws == W.tag x) workspacesOld) -- if tag is not found in workspacesOld, return new ws
 
-            
+
             selectWsName (tag, nameOld) (_, nameNew) = if tag `elem` ids then (tag, nameOld) else (tag, nameNew)
 
 
@@ -217,18 +218,27 @@ createContext name = do
             newCtxMap = Map.insert name newCtx (contextMap ctxStorage)
         XS.put $ ctxStorage { contextMap = newCtxMap }
 
+
 deleteContext :: Read (Layout Window) => ContextName -> X Bool
-deleteContext name = do
+deleteContext = deleteContextFixedWs []
+
+deleteContextFixedWs :: Read (Layout Window) => [WorkspaceId] -> ContextName -> X Bool
+deleteContextFixedWs ids name = do
     ctxStorage <- XS.get :: X ContextStorage
     let (maybeCtx, newCtxMap) = findAndDelete name (contextMap ctxStorage)
     case maybeCtx of
-      Nothing  -> return False
-      Just ctx -> do
-          -- Kill all windows in that context
-          let windows' = W.allWindows $ windowSet ctx
-          for_ windows' killWindow
-          XS.put $ ctxStorage { contextMap = newCtxMap }
-          return True
+        Nothing  -> return False
+        Just ctx -> do
+            -- Kill windows in that context that are not on fixed workspaces
+            let workspaces' = filter (\ws -> W.tag ws `notElem` ids) $ W.workspaces $ windowSet ctx
+
+            for_ workspaces' killWindowsOnWs
+            XS.put $ ctxStorage { contextMap = newCtxMap }
+            return True
+
+                where
+                    getWindows = W.integrate' . W.stack
+                    killWindowsOnWs ws = for_ (getWindows ws) killWindow
 
 showCurrentContextName :: Read (Layout Window) => X String
 showCurrentContextName = do
